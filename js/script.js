@@ -13,30 +13,44 @@ let intervalId = null;
 function setStage(name, state) {
   document.querySelector(`#stage-${name}`).className = `step-card is-${state}`;
 }
+
 function resetStages() {
-  stages.forEach(
-    (name) =>
-      (document.querySelector(`#stage-${name}`).className = "step-card"),
-  );
+  stages.forEach((name) => {
+    document.querySelector(`#stage-${name}`).className = "step-card";
+  });
 }
 
-// TODO 1. Каждые 650 мс уменьшайте seconds через setInterval.
-// Когда seconds станет 0, вызовите clearInterval и onDone().
-function startCountdown(onDone) {}
+function startCountdown(onDone) {
+  intervalId = setInterval(() => {
+    seconds -= 1;
+    secondsText.textContent = seconds;
 
-// TODO 2. Через 800 мс завершите проверку систем и вызовите onDone().
-function checkSystems(onDone) {}
+    if (seconds === 0) {
+      clearInterval(intervalId);
+      intervalId = null;
+      onDone();
+    }
+  }, 650);
+}
 
-// TODO 3. Верните Promise с задержкой 900 мс.
-// Если shouldFail = true, вызовите reject(new Error(...)), иначе resolve(...).
-function requestPermission(shouldFail) {}
+function checkSystems(onDone) {
+  setTimeout(() => {
+    onDone();
+  }, 800);
+}
 
-// TODO 4. Дополните готовую async-функцию, которая последовательно:
-// а) ждёт отсчёт, обернув callback в Promise;
-// б) ждёт проверку систем, обернув callback в Promise;
-// в) ждёт requestPermission через await;
-// г) показывает успех или ошибку через try/catch;
-// д) возвращает кнопки в исходное состояние через finally.
+function requestPermission(shouldFail) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (shouldFail) {
+        reject(new Error("Разрешение на запуск не получено."));
+      } else {
+        resolve("Разрешение получено.");
+      }
+    }, 900);
+  });
+}
+
 async function launchMission() {
   if (launchButton.disabled) return;
   launchButton.disabled = true;
@@ -50,23 +64,22 @@ async function launchMission() {
   try {
     setStage("countdown", "active");
     status.textContent = "Идёт отсчёт...";
-    // TODO 4а. Дождитесь startCountdown, обернув callback в Promise.
+    await new Promise((resolve) => startCountdown(resolve));
 
     setStage("countdown", "done");
     setStage("systems", "active");
     status.textContent = "Проверка систем...";
-    // TODO 4б. Дождитесь checkSystems, обернув callback в Promise.
+    await new Promise((resolve) => checkSystems(resolve));
 
     setStage("systems", "done");
     setStage("permission", "active");
     status.textContent = "Запрос разрешения...";
-    // TODO 4в. Дождитесь requestPermission через await.
-    // Сохраните ответ в переменную answer.
+    const answer = await requestPermission(failCheckbox.checked);
 
     setStage("permission", "done");
     result.textContent = "Миссия запущена!";
     status.className = "status status--success";
-    // TODO 4г. Выведите полученный ответ в status.textContent.
+    status.textContent = answer;
   } catch (error) {
     result.textContent = "Запуск отменён";
     status.className = "status status--error";
@@ -79,7 +92,7 @@ async function launchMission() {
 
 launchButton.addEventListener("click", launchMission);
 resetButton.addEventListener("click", () => {
-  if (launchButton.disabled) return; // во время запуска сброс недоступен
+  if (launchButton.disabled) return;
   clearInterval(intervalId);
   intervalId = null;
   seconds = 5;
