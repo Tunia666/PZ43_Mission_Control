@@ -22,15 +22,33 @@ function resetStages() {
 
 // TODO 1. Каждые 650 мс уменьшайте seconds через setInterval.
 // Когда seconds станет 0, вызовите clearInterval и onDone().
-function startCountdown(onDone) {}
-
+function startCountdown(onDone) {
+  function tick() {
+    seconds -= 1;
+    secondsText.textContent = seconds;
+    if (seconds === 0) {
+      clearInterval(intervalId);
+      intervalId = null;
+      onDone();
+    }
+  }
+  intervalId = setInterval(tick, 650);
+}
 // TODO 2. Через 800 мс завершите проверку систем и вызовите onDone().
-function checkSystems(onDone) {}
-
+function checkSystems(onDone) {
+  setTimeout(onDone, 800);
+}
 // TODO 3. Верните Promise с задержкой 900 мс.
 // Если shouldFail = true, вызовите reject(new Error(...)), иначе resolve(...).
-function requestPermission(shouldFail) {}
-
+function requestPermission(shouldFail) {
+  return new Promise((resolve, reject) => {
+    function answer() {
+      if (shouldFail) reject(new Error("Разрешение на запуск не получено."));
+      else resolve("Разрешение получено.");
+    }
+    setTimeout(answer, 900);
+  });
+}
 // TODO 4. Дополните готовую async-функцию, которая последовательно:
 // а) ждёт отсчёт, обернув callback в Promise;
 // б) ждёт проверку систем, обернув callback в Promise;
@@ -51,22 +69,23 @@ async function launchMission() {
     setStage("countdown", "active");
     status.textContent = "Идёт отсчёт...";
     // TODO 4а. Дождитесь startCountdown, обернув callback в Promise.
-
+    await new Promise((resolve) => startCountdown(resolve));
     setStage("countdown", "done");
     setStage("systems", "active");
     status.textContent = "Проверка систем...";
     // TODO 4б. Дождитесь checkSystems, обернув callback в Promise.
-
+    await new Promise((resolve) => checkSystems(resolve));
     setStage("systems", "done");
     setStage("permission", "active");
     status.textContent = "Запрос разрешения...";
     // TODO 4в. Дождитесь requestPermission через await.
     // Сохраните ответ в переменную answer.
-
+    const answer = await requestPermission(failCheckbox.checked);
     setStage("permission", "done");
     result.textContent = "Миссия запущена!";
     status.className = "status status--success";
     // TODO 4г. Выведите полученный ответ в status.textContent.
+    status.textContent = answer;
   } catch (error) {
     result.textContent = "Запуск отменён";
     status.className = "status status--error";
